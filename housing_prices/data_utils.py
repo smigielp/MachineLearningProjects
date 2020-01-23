@@ -10,7 +10,7 @@ import pandas as pd
 import hashlib
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
@@ -62,10 +62,11 @@ class ColumnToOneHot(BaseEstimator, TransformerMixin):
         self.encoder = LabelBinarizer()
         
     def fit(self, X, y=None):
+        self.encoder.fit(X[self.column_name])
         return self
     
     def transform(self, X, y=None):
-        ocean_proximity_one_hot = self.encoder.fit_transform(X[self.column_name]) 
+        ocean_proximity_one_hot = self.encoder.transform(X[self.column_name]) 
         X = pd.concat([X, pd.DataFrame(ocean_proximity_one_hot)], axis=1)
         X.drop(self.column_name, axis=1, inplace=True)
         if self.remove_dummy == True:
@@ -76,12 +77,36 @@ class ColumnToOneHot(BaseEstimator, TransformerMixin):
 # Pipelines    
 #============================================================
 
-def transform_data(X, nan_columns=[], label_columns=[]):
+class CustomPipeline:
+    
+    def __init__(self, nan_columns=[], label_columns=[], scale_data=True):
+        transformers = []
+        if nan_columns != []:
+            transformers.append(('imputer', NumericImputer(column_names=nan_columns)))
+        for column in label_columns:
+            transformers.append(('label_binarizer' + column, ColumnToOneHot(column_name=column)))
+        if scale_data:
+            transformers.append(('std_scaler', StandardScaler()))
+        self.pipeline = Pipeline(transformers)
+    
+    def fit(self, X):
+        self.pipeline.fit(X)
+        return self
+        
+    def transform(self, X):
+        return self.pipeline.transform(X)
+        
+    
+# Deprecated function
+
+def transform_data(X, nan_columns=[], label_columns=[], scale_data=True):
     transformers = []
     if nan_columns != []:
         transformers.append(('imputer', NumericImputer(column_names=nan_columns)))
-    if label_columns != []:
-        transformers.append(('label_binarizer', ColumnToOneHot(column_name=label_columns)))
+    for column in label_columns:
+        transformers.append(('label_binarizer' + column, ColumnToOneHot(column_name=column)))
+    if scale_data:
+        transformers.append(('std_scaler', StandardScaler()))
     pipeline = Pipeline(transformers)
     return pipeline.fit_transform(X)
 
@@ -118,12 +143,18 @@ def stratify_split_train_test(data, category_column, test_ratio):
     for train_index, test_index in split.split(data, data[category_column]):
         strat_train_set = data.loc[train_index]
         strat_test_set = data.loc[test_index]
+        strat_train_set.reset_index(drop=True, inplace=True)
+        strat_test_set.reset_index(drop=True, inplace=True)
     return strat_train_set, strat_test_set
     
 
 #============================================================
-# Ready-to-use transformator pipelines
+# prognosis-labels colums splitting
 #============================================================
-    
+
+def separate_label_data(data, label_column):
+    prog_data = data.drop(label_column, axis=1)
+    label_data = data[label_column].copy()
+    return prog_data, label_data
 
     

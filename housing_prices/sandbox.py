@@ -27,9 +27,13 @@ print(data.loc[[0, 1],["longitude", "latitude"]])
 import data_source, data_utils, pre_analysis_utils
 x = data.iloc[:, 0:]
 
-encoder = data_utils.NumericImputer(column_names=['total_bedrooms'])
+train, test = data_utils.rand_split_train_test(x, 0.2)
 
-x = data_utils.transform_data(x, nan_columns=['total_bedrooms'], label_columns=['ocean_proximity'])
+encoder = data_utils.NumericImputer(column_names=['total_bedrooms', 'population'])
+
+train = encoder.fit_transform(train)
+
+train = data_utils.transform_data(train, nan_columns=['total_bedrooms'], label_columns=['ocean_proximity'])
 
 x.info()
 
