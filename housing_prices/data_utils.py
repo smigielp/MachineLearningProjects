@@ -8,11 +8,13 @@ Created on Sun Dec 22 12:22:04 2019
 import numpy as np
 import pandas as pd
 import hashlib
+import matplotlib.pyplot as plt
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.preprocessing import LabelBinarizer, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import mean_squared_error
 
 
 #============================================================    
@@ -157,4 +159,27 @@ def separate_label_data(data, label_column):
     label_data = data[label_column].copy()
     return prog_data, label_data
 
+
+#============================================================
+# Printing Learning Curve
+#============================================================
+    
+def plot_learning_curve(model, X_train, X_val, y_train, y_val):
+    train_errors, val_errors = [], []
+    for m in range(1, len(X_train)):
+        model.fit(X_train[:m], y_train[:m])
+        y_train_predict = model.predict(X_train[:m])
+        y_val_predict = model.predict(X_val)
+        train_errors.append(mean_squared_error(y_train_predict, y_train[:m]))
+        val_errors.append(mean_squared_error(y_val_predict, y_val))
+    plt.plot(np.sqrt(train_errors), 'r-+', linewidth=2, label='train')
+    plt.plot(np.sqrt(val_errors), 'b-', linewidth=2, label='train')
+    
+    
+def plot_learning_curve_raw_data(model, data, label_column):
+    X, y = rand_split_train_test(data, 0.2)
+    X_train, X_val = separate_label_data(data, label_column)
+    y_train, y_val = separate_label_data(data, label_column)
+    plot_learning_curve(model, X_train, X_val, y_train, y_val)
+    
     

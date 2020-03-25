@@ -6,9 +6,7 @@ Created on Tue Dec 10 22:18:53 2019
 """
 
 import data_source, data_utils, model_wrapper
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import cross_val_score
@@ -34,6 +32,7 @@ data_utils.categorize_num_data(data, 'median_income', 1.5, 5.0)
 train_data_raw, test_data_raw = data_utils.stratify_split_train_test(data, 'median_income_cat', 0.2)
 
 train_data_raw, train_labels = data_utils.separate_label_data(train_data_raw, 'median_house_value')
+test_data_raw, test_labels = data_utils.separate_label_data(test_data_raw, 'median_house_value')
 
 # Fixing missing values, performing one-hot-encoding, scaling
 my_pipeline = data_utils.CustomPipeline(nan_columns=['total_bedrooms'], 
@@ -41,6 +40,7 @@ my_pipeline = data_utils.CustomPipeline(nan_columns=['total_bedrooms'],
                                         scale_data=True)
 
 train_data = my_pipeline.fit(train_data_raw).transform(train_data_raw)
+test_data = my_pipeline.transform(test_data_raw)
 
 
 # Preparing sample for quick pre-verification
@@ -62,6 +62,11 @@ lin_mse = mean_squared_error(lin_reg_predictions, some_labels)
 lin_rmse = np.sqrt(lin_mse)
 print(lin_rmse)
 
+
+#==============================================================================
+# Checking learning curve
+lin_reg = LinearRegression()
+data_utils.plot_learning_curve(lin_reg, train_data, test_data, train_labels, test_labels)
 
 #==============================================================================
 # Training regression model with DecisionTree
